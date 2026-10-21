@@ -18,7 +18,7 @@ db.exec(`CREATE TABLE IF NOT EXISTS messages (
 
 // Serve static files (Frontend)
 app.use(express.static('public'));
-
+const insertStmt = db.prepare("INSERT INTO messages (name, text) VALUES (?, ?)");
 // Socket.io Logic
 io.on('connection', (socket) => {
     console.log('A new user connected');
