@@ -20,12 +20,30 @@
   }
   *{box-sizing:border-box;}
   html,body{height:100%; margin:0;}
-  body{ background: var(--wash); color: var(--ink); font-family:'Tajawal',sans-serif; display:flex; flex-direction:column; }
-  header{ background: linear-gradient(180deg, var(--sea-deep), var(--sea)); color:#fff; padding: 18px 20px 22px; position: relative; overflow: hidden; }
+  body{ background: var(--wash); color: var(--ink); font-family:'Tajawal',sans-serif; display:flex; flex-direction:column; overflow: hidden; }
+  
+  /* Header & Sidebar */
+  header{ background: linear-gradient(180deg, var(--sea-deep), var(--sea)); color:#fff; padding: 18px 20px 22px; position: relative; overflow: hidden; display: flex; justify-content: space-between; align-items: flex-start; }
   header h1{ font-family:'Space Grotesk',sans-serif; font-weight:700; font-size: clamp(22px,6vw,30px); margin:0 0 4px; }
   header p{ margin:0; font-size:14px; color:#CFEAF5; max-width:40ch; line-height:1.5; }
   #status{ display:inline-flex; align-items:center; gap:6px; font-size:12px; color:#CFEAF5; margin-top:8px; }
   #status .dot{ width:8px; height:8px; border-radius:50%; background:#6FCF97; }
+  
+  #menuBtn { background: rgba(255,255,255,0.2); border: none; color: white; padding: 8px 12px; border-radius: 8px; cursor: pointer; font-size: 20px; display: flex; align-items: center; justify-content: center; }
+  #menuBtn:hover { background: rgba(255,255,255,0.3); }
+
+  /* Sidebar */
+  #sidebar { position: fixed; top: 0; left: -250px; width: 250px; height: 100%; background: var(--sea-deep); color: white; z-index: 200; transition: 0.3s; padding: 20px; box-shadow: 2px 0 10px rgba(0,0,0,0.5); display: flex; flex-direction: column; }
+  #sidebar.open { left: 0; }
+  #sidebar h3 { margin-top: 0; border-bottom: 1px solid var(--sea); padding-bottom: 10px; display: flex; justify-content: space-between; align-items: center; }
+  #closeSidebar { cursor: pointer; font-size: 24px; }
+  #usersList { list-style: none; padding: 0; overflow-y: auto; }
+  #usersList li { padding: 10px 0; border-bottom: 1px solid rgba(255,255,255,0.1); display: flex; align-items: center; gap: 10px; }
+  #usersList li::before { content: "●"; color: #6FCF97; font-size: 12px; }
+  #overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); z-index: 150; display: none; }
+  #overlay.open { display: block; }
+
+  /* Chat Room */
   #room{ flex:1; overflow-y:auto; padding: 22px 16px 10px; display:flex; flex-direction:column; gap:10px; max-width:720px; width:100%; margin:0 auto; }
   .msg{ max-width:78%; padding:10px 14px; border-radius:16px; line-height:1.5; font-size:15px; box-shadow:0 1px 2px rgba(15,37,55,.08); word-wrap:break-word; }
   .msg .name{ font-size:12px; font-weight:700; color: var(--sea); margin-bottom:2px; display:block; }
@@ -33,9 +51,13 @@
   .msg.mine .name{ color:#CFEAF5; }
   .msg.other{ align-self:flex-start; background: var(--paper); border:1px solid rgba(15,106,140,.15); border-bottom-left-radius:4px; }
   #empty{ margin:auto; text-align:center; color:var(--sea); opacity:.7; font-size:14px; padding:40px 20px; }
+
+  /* Input Bar */
   form#bar{ display:flex; gap:8px; padding:10px 14px; background: var(--paper); border-top:1px solid rgba(15,106,140,.15); max-width:720px; width:100%; margin:0 auto; }
   #bar input{ flex:1; border:1px solid rgba(15,106,140,.25); border-radius:22px; padding:11px 16px; font-size:15px; font-family:inherit; background:var(--wash); color:var(--ink); }
   #bar button{ background: var(--clay); color:#fff; border:none; border-radius:22px; padding:0 20px; font-weight:700; font-size:15px; font-family:inherit; cursor:pointer; }
+
+  /* Gate */
   #gate{ position:fixed; inset:0; background: var(--sea-deep); display:flex; align-items:center; justify-content:center; z-index:20; padding:24px; }
   #gate .card{ background: var(--paper); border-radius:18px; padding:28px 24px; max-width:340px; width:100%; text-align:center; box-shadow:0 8px 30px rgba(0,0,0,.3); }
   #gate h2{ font-family:'Space Grotesk',sans-serif; margin:0 0 6px; color:var(--ink); font-size:22px; }
@@ -47,6 +69,7 @@
 </head>
 <body>
 
+<!-- Gate (Login) -->
 <div id="gate">
   <div class="card">
     <h2>RifChatPro</h2>
@@ -57,10 +80,21 @@
   </div>
 </div>
 
+<!-- Sidebar (Online Users) -->
+<div id="overlay" onclick="toggleSidebar()"></div>
+<div id="sidebar">
+  <h3>Online Users <span id="closeSidebar" onclick="toggleSidebar()">×</span></h3>
+  <ul id="usersList"></ul>
+</div>
+
+<!-- Main App -->
 <header>
-  <h1>RifChatPro</h1>
-  <p>Group Chat — Connected across devices</p>
-  <div id="status" class="offline"><span class="dot"></span><span id="statusText">Connecting...</span></div>
+  <div>
+    <h1>RifChatPro</h1>
+    <p>Group Chat — Connected across devices</p>
+    <div id="status" class="offline"><span class="dot"></span><span id="statusText">Connecting...</span></div>
+  </div>
+  <button id="menuBtn" onclick="toggleSidebar()">☰</button>
 </header>
 
 <div id="room"><div id="empty">No messages yet. Be the first to say hi 👋</div></div>
@@ -87,6 +121,12 @@
 
   let myName = '';
 
+  // Sidebar Logic
+  function toggleSidebar() {
+    document.getElementById('sidebar').classList.toggle('open');
+    document.getElementById('overlay').classList.toggle('open');
+  }
+
   socket.on('connect', () => {
     statusEl.classList.remove('offline');
     statusText.textContent = 'Online — Messages synced';
@@ -96,6 +136,17 @@
   socket.on('disconnect', () => {
     statusEl.classList.add('offline');
     statusText.textContent = 'Disconnected from server';
+  });
+
+  // Receive Online Users List
+  socket.on('update users', (users) => {
+    const list = document.getElementById('usersList');
+    list.innerHTML = '';
+    users.forEach(user => {
+      const li = document.createElement('li');
+      li.textContent = user;
+      list.appendChild(li);
+    });
   });
 
   socket.on('chat history', (messages) => {
@@ -133,6 +184,7 @@
     msgInput.disabled = false;
     sendBtn.disabled = false;
     msgInput.focus();
+    socket.emit('user joined', myName); // إرسال الاسم للسيرفر
   }
 
   joinBtn.addEventListener('click', join);
