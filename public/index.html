@@ -75,8 +75,9 @@
 <div id="gate">
   <div class="card">
     <h2>RifChatPro</h2>
-    <p>Real-time group chat — your messages reach anyone who opens this page.</p>
+    <p>Real-time group chat — enter your name and room password.</p>
     <input id="nameInput" type="text" placeholder="Your Name" maxlength="20" autocomplete="off">
+    <input id="roomPassInput" type="password" placeholder="Room Secret Password" autocomplete="off">
     <button id="joinBtn">Join Room</button>
     <p class="small" id="gateStatus">Ready to connect...</p>
   </div>
@@ -107,14 +108,15 @@
 </form>
 
 <script>
-  // 1. الاتصال بالسيرفر (تأكد من أن الرابط هو رابط Bonto الخاص بك)
-  const socket = io('https://hacktivate123.bonto.run');  
+  // 1. الاتصال بالسيرفر (يعمل تلقائياً مع السيرفر المحلي أو المستضاف)
+  const socket = io();  
 
-  // 2. المفتاح السري للتشفير (يجب أن يكون نفس المفتاح في كل الأجهزة)
-  const SECRET_KEY = "RifChatPro_Secret_2026";
+  // متغير لتخزين مفتاح التشفير ديناميكياً بناءً على ما يدخله المستخدم
+  let SECRET_KEY = '';
 
   const gate = document.getElementById('gate');
   const nameInput = document.getElementById('nameInput');
+  const roomPassInput = document.getElementById('roomPassInput');
   const joinBtn = document.getElementById('joinBtn');
   const gateStatus = document.getElementById('gateStatus');
   const room = document.getElementById('room');
@@ -136,7 +138,7 @@
   socket.on('connect', () => {
     statusEl.classList.remove('offline');
     statusText.textContent = 'Online — Messages synced';
-    gateStatus.textContent = 'Server ready. Enter your name.';
+    gateStatus.textContent = 'Server ready. Enter name & password.';
   });
 
   socket.on('disconnect', () => {
@@ -165,7 +167,7 @@
     addMessage(msg.name, msg.text, msg.name === myName ? 'mine' : 'other');
   });
 
-  // دالة عرض الرسائل (مع فك التشفير)
+  // دالة عرض الرسائل (مع فك التشفير بمفتاح الغرفة الديناميكي)
   function addMessage(name, text, type){
     if(empty && empty.parentNode) empty.remove();
     const div = document.createElement('div');
@@ -176,7 +178,7 @@
       n.textContent = name;
       div.appendChild(n);
     }
-    
+
     // فك التشفير
     let displayText = text;
     try {
@@ -184,7 +186,7 @@
         const decrypted = bytes.toString(CryptoJS.enc.Utf8);
         if (decrypted) displayText = decrypted;
     } catch(e) {
-        displayText = text; // إذا كانت الرسالة قديمة وغير مشفرة
+        displayText = text; // إذا فشل فك التشفير أو كانت الرسالة غير مشفرة
     }
 
     const t = document.createElement('span');
@@ -196,8 +198,14 @@
 
   function join(){
     const v = nameInput.value.trim();
+    const p = roomPassInput.value.trim();
+    
     if(!v) { nameInput.focus(); return; }
+    if(!p) { roomPassInput.focus(); alert('Please enter room password!'); return; }
+    
     myName = v;
+    SECRET_KEY = p; // تعيين مفتاح التشفير من حقل الإدخال السري للغرفة
+    
     gate.style.display = 'none';
     msgInput.disabled = false;
     sendBtn.disabled = false;
@@ -207,16 +215,17 @@
 
   joinBtn.addEventListener('click', join);
   nameInput.addEventListener('keydown', e => { if(e.key === 'Enter') join(); });
+  roomPassInput.addEventListener('keydown', e => { if(e.key === 'Enter') join(); });
 
-  // إرسال الرسالة (مع التشفير)
+  // إرسال الرسالة (مع التشفير بمفتاح الغرفة)
   bar.addEventListener('submit', function(e){
     e.preventDefault();
     const text = msgInput.value.trim();
     if(!text) return;
-    
+
     // تشفير الرسالة قبل إرسالها
     const encryptedText = CryptoJS.AES.encrypt(text, SECRET_KEY).toString();
-    
+
     socket.emit('chat message', { name: myName, text: encryptedText });
     msgInput.value = '';
   });
