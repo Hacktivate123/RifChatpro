@@ -9,6 +9,8 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Tajawal:wght@400;500;700;900&family=Space+Grotesk:wght@500;700&display=swap" rel="stylesheet">
+<!-- إضافة مكتبة التشفير CryptoJS -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/crypto-js/4.1.1/crypto-js.min.js"></script>
 <style>
   :root{
     --sea-deep:#0F3B52; --sea:#1B6A8C; --chaouen:#5FB3D9;
@@ -21,14 +23,14 @@
   *{box-sizing:border-box;}
   html,body{height:100%; margin:0;}
   body{ background: var(--wash); color: var(--ink); font-family:'Tajawal',sans-serif; display:flex; flex-direction:column; overflow: hidden; }
-  
+
   /* Header & Sidebar */
   header{ background: linear-gradient(180deg, var(--sea-deep), var(--sea)); color:#fff; padding: 18px 20px 22px; position: relative; overflow: hidden; display: flex; justify-content: space-between; align-items: flex-start; }
   header h1{ font-family:'Space Grotesk',sans-serif; font-weight:700; font-size: clamp(22px,6vw,30px); margin:0 0 4px; }
   header p{ margin:0; font-size:14px; color:#CFEAF5; max-width:40ch; line-height:1.5; }
   #status{ display:inline-flex; align-items:center; gap:6px; font-size:12px; color:#CFEAF5; margin-top:8px; }
   #status .dot{ width:8px; height:8px; border-radius:50%; background:#6FCF97; }
-  
+
   #menuBtn { background: rgba(255,255,255,0.2); border: none; color: white; padding: 8px 12px; border-radius: 8px; cursor: pointer; font-size: 20px; display: flex; align-items: center; justify-content: center; }
   #menuBtn:hover { background: rgba(255,255,255,0.3); }
 
@@ -105,8 +107,12 @@
 </form>
 
 <script>
-  const socket = io('https://hackactivate123.bonto.run');  
-  
+  // 1. الاتصال بالسيرفر (تأكد من أن الرابط هو رابط Bonto الخاص بك)
+  const socket = io('https://hacktivate123.bonto.run');  
+
+  // 2. المفتاح السري للتشفير (يجب أن يكون نفس المفتاح في كل الأجهزة)
+  const SECRET_KEY = "RifChatPro_Secret_2026";
+
   const gate = document.getElementById('gate');
   const nameInput = document.getElementById('nameInput');
   const joinBtn = document.getElementById('joinBtn');
@@ -159,6 +165,7 @@
     addMessage(msg.name, msg.text, msg.name === myName ? 'mine' : 'other');
   });
 
+  // دالة عرض الرسائل (مع فك التشفير)
   function addMessage(name, text, type){
     if(empty && empty.parentNode) empty.remove();
     const div = document.createElement('div');
@@ -169,8 +176,19 @@
       n.textContent = name;
       div.appendChild(n);
     }
+    
+    // فك التشفير
+    let displayText = text;
+    try {
+        const bytes = CryptoJS.AES.decrypt(text, SECRET_KEY);
+        const decrypted = bytes.toString(CryptoJS.enc.Utf8);
+        if (decrypted) displayText = decrypted;
+    } catch(e) {
+        displayText = text; // إذا كانت الرسالة قديمة وغير مشفرة
+    }
+
     const t = document.createElement('span');
-    t.textContent = text;
+    t.textContent = displayText;
     div.appendChild(t);
     room.appendChild(div);
     room.scrollTop = room.scrollHeight;
@@ -190,11 +208,16 @@
   joinBtn.addEventListener('click', join);
   nameInput.addEventListener('keydown', e => { if(e.key === 'Enter') join(); });
 
+  // إرسال الرسالة (مع التشفير)
   bar.addEventListener('submit', function(e){
     e.preventDefault();
     const text = msgInput.value.trim();
     if(!text) return;
-    socket.emit('chat message', { name: myName, text: text });
+    
+    // تشفير الرسالة قبل إرسالها
+    const encryptedText = CryptoJS.AES.encrypt(text, SECRET_KEY).toString();
+    
+    socket.emit('chat message', { name: myName, text: encryptedText });
     msgInput.value = '';
   });
 
