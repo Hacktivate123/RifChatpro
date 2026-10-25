@@ -9,7 +9,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Tajawal:wght@400;500;700;900&family=Space+Grotesk:wght@500;700&display=swap" rel="stylesheet">
-<!-- إضافة مكتبة التشفير CryptoJS -->
+<!-- CryptoJS Library for Message Encryption -->
 <script src="https://cdnjs.cloudflare.com/ajax/libs/crypto-js/4.1.1/crypto-js.min.js"></script>
 <style>
   :root{
@@ -33,9 +33,6 @@
 
   #menuBtn { background: rgba(255,255,255,0.2); border: none; color: white; padding: 8px 12px; border-radius: 8px; cursor: pointer; font-size: 20px; display: flex; align-items: center; justify-content: center; }
   #menuBtn:hover { background: rgba(255,255,255,0.3); }
-  
-  /* Language Button */
-  #langBtn { background: var(--clay); border: none; color: white; padding: 8px 12px; border-radius: 8px; cursor: pointer; font-size: 14px; font-weight: bold; margin-right: 8px; }
 
   /* Sidebar */
   #sidebar { position: fixed; top: 0; left: -250px; width: 250px; height: 100%; background: var(--sea-deep); color: white; z-index: 200; transition: 0.3s; padding: 20px; box-shadow: 2px 0 10px rgba(0,0,0,0.5); display: flex; flex-direction: column; }
@@ -77,8 +74,8 @@
 <!-- Gate (Login) -->
 <div id="gate">
   <div class="card">
-    <h2 id="t_title_gate">RifChatPro</h2>
-    <p id="t_sub_gate">Real-time group chat — enter your name and room password.</p>
+    <h2>RifChatPro</h2>
+    <p>Real-time group chat — enter your name and room password.</p>
     <input id="nameInput" type="text" placeholder="Your Name" maxlength="20" autocomplete="off">
     <input id="roomPassInput" type="password" placeholder="Room Secret Password" autocomplete="off">
     <button id="joinBtn">Join Room</button>
@@ -89,7 +86,7 @@
 <!-- Sidebar (Online Users) -->
 <div id="overlay" onclick="toggleSidebar()"></div>
 <div id="sidebar">
-  <h3><span id="t_online_users">Online Users</span> <span id="closeSidebar" onclick="toggleSidebar()">×</span></h3>
+  <h3><span>Online Users</span> <span id="closeSidebar" onclick="toggleSidebar()">×</span></h3>
   <ul id="usersList"></ul>
 </div>
 
@@ -97,11 +94,10 @@
 <header>
   <div>
     <h1>RifChatPro</h1>
-    <p id="t_header_sub">Group Chat — Connected across devices</p>
+    <p>Group Chat — Connected across devices</p>
     <div id="status" class="offline"><span class="dot"></span><span id="statusText">Connecting...</span></div>
   </div>
-  <div style="display:flex;">
-    <button id="langBtn" onclick="toggleLanguage()">Rif / EN</button>
+  <div>
     <button id="menuBtn" onclick="toggleSidebar()">☰</button>
   </div>
 </header>
@@ -114,11 +110,9 @@
 </form>
 
 <script>
-  // 1. الاتصال بالسيرفر
   const socket = io();  
 
   let SECRET_KEY = '';
-  let currentLang = 'en'; // اللغة الافتراضية
 
   const gate = document.getElementById('gate');
   const nameInput = document.getElementById('nameInput');
@@ -135,71 +129,6 @@
 
   let myName = '';
 
-  // --- نظام الترجمة (i18n) ---
-  const translations = {
-    en: {
-      gateSub: "Real-time group chat — enter your name and room password.",
-      namePlaceholder: "Your Name",
-      passPlaceholder: "Room Secret Password",
-      joinBtn: "Join Room",
-      ready: "Ready to connect...",
-      headerSub: "Group Chat — Connected across devices",
-      connecting: "Connecting...",
-      online: "Online — Messages synced",
-      disconnected: "Disconnected from server",
-      onlineUsers: "Online Users",
-      emptyChat: "No messages yet. Be the first to say hi 👋",
-      msgPlaceholder: "Type a message...",
-      send: "Send",
-      alertPass: "Please enter room password!"
-    },
-    rif: {
-      gateSub: "Taqeccact n usqerdas — sekcem isem-ik d wawal n uffir.",
-      namePlaceholder: "Isem-ik",
-      passPlaceholder: "Awal n uffir n tqeccact",
-      joinBtn: "Kcem",
-      ready: "Iwejjed usrver...",
-      headerSub: "Taqeccact n usqerdas — Iqqen wiyyad",
-      connecting: "Ari ad iqqen...",
-      online: "Iqqen — Tbratin ttwaṭṭafent",
-      disconnected: "Yeḥbes uqqin",
-      onlineUsers: "Imseqdacen iqqnen",
-      emptyChat: "Ulac tbratin. Aru tbrat tamezwarut 👋",
-      msgPlaceholder: "Aru tbrat...",
-      send: "Azen",
-      alertPass: "Sekcem awal n uffir!"
-    }
-  };
-
-  function toggleLanguage() {
-    currentLang = currentLang === 'en' ? 'rif' : 'en';
-    updateLanguage();
-  }
-
-  function updateLanguage() {
-    const t = translations[currentLang];
-    document.getElementById('t_sub_gate').textContent = t.gateSub;
-    nameInput.placeholder = t.namePlaceholder;
-    roomPassInput.placeholder = t.passPlaceholder;
-    joinBtn.textContent = t.joinBtn;
-    document.getElementById('t_header_sub').textContent = t.headerSub;
-    document.getElementById('t_online_users').textContent = t.onlineUsers;
-    empty.textContent = t.emptyChat;
-    msgInput.placeholder = t.msgPlaceholder;
-    sendBtn.textContent = t.send;
-    
-    // تحديث حالة الاتصال
-    if(statusEl.classList.contains('offline')) {
-      statusText.textContent = t.disconnected;
-      gateStatus.textContent = t.connecting;
-    } else {
-      statusText.textContent = t.online;
-      gateStatus.textContent = t.ready;
-    }
-  }
-
-  // --- بقية منطق التطبيق ---
-
   function toggleSidebar() {
     document.getElementById('sidebar').classList.toggle('open');
     document.getElementById('overlay').classList.toggle('open');
@@ -207,13 +136,13 @@
 
   socket.on('connect', () => {
     statusEl.classList.remove('offline');
-    statusText.textContent = translations[currentLang].online;
-    gateStatus.textContent = translations[currentLang].ready;
+    statusText.textContent = "Online — Messages synced";
+    gateStatus.textContent = "Ready to connect...";
   });
 
   socket.on('disconnect', () => {
     statusEl.classList.add('offline');
-    statusText.textContent = translations[currentLang].disconnected;
+    statusText.textContent = "Disconnected from server";
   });
 
   socket.on('update users', (users) => {
@@ -266,13 +195,13 @@
   function join(){
     const v = nameInput.value.trim();
     const p = roomPassInput.value.trim();
-    
+
     if(!v) { nameInput.focus(); return; }
-    if(!p) { roomPassInput.focus(); alert(translations[currentLang].alertPass); return; }
-    
+    if(!p) { roomPassInput.focus(); alert("Please enter room password!"); return; }
+
     myName = v;
     SECRET_KEY = p;
-    
+
     gate.style.display = 'none';
     msgInput.disabled = false;
     sendBtn.disabled = false;
@@ -292,10 +221,6 @@
     socket.emit('chat message', { name: myName, text: encryptedText });
     msgInput.value = '';
   });
-
-  // تشغيل الترجمة الافتراضية عند فتح التطبيق
-  updateLanguage();
-
 </script>
 </body>
 </html>
