@@ -3,14 +3,16 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<title>RifChatPro</title>
+<title>RifChatPro - Secure Local Chat</title>
 <link rel="manifest" href="/manifest.json">
 <meta name="theme-color" content="#0F3B52">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Tajawal:wght@400;500;700;900&family=Space+Grotesk:wght@500;700&display=swap" rel="stylesheet">
-<!-- CryptoJS Library for Message Encryption -->
-<script src="https://cdnjs.cloudflare.com/ajax/libs/crypto-js/4.1.1/crypto-js.min.js"></script>
+
+<!-- مكتبة التشفير محلياً لضمان الأمان والعمل بدون إنترنت -->
+<script src="./crypto-js.min.js"></script>
+
 <style>
   :root{
     --sea-deep:#0F3B52; --sea:#1B6A8C; --chaouen:#5FB3D9;
@@ -30,6 +32,7 @@
   header p{ margin:0; font-size:14px; color:#CFEAF5; max-width:40ch; line-height:1.5; }
   #status{ display:inline-flex; align-items:center; gap:6px; font-size:12px; color:#CFEAF5; margin-top:8px; }
   #status .dot{ width:8px; height:8px; border-radius:50%; background:#6FCF97; }
+  #status.offline .dot{ background:#EB5757; }
 
   #menuBtn { background: rgba(255,255,255,0.2); border: none; color: white; padding: 8px 12px; border-radius: 8px; cursor: pointer; font-size: 20px; display: flex; align-items: center; justify-content: center; }
   #menuBtn:hover { background: rgba(255,255,255,0.3); }
@@ -75,7 +78,7 @@
 <div id="gate">
   <div class="card">
     <h2>RifChatPro</h2>
-    <p>Real-time group chat — enter your name and room password.</p>
+    <p>Secure Local Chat — Enter your name and room password.</p>
     <input id="nameInput" type="text" placeholder="Your Name" maxlength="20" autocomplete="off">
     <input id="roomPassInput" type="password" placeholder="Room Secret Password" autocomplete="off">
     <button id="joinBtn">Join Room</button>
@@ -94,7 +97,7 @@
 <header>
   <div>
     <h1>RifChatPro</h1>
-    <p>Group Chat — Connected across devices</p>
+    <p>Secure Local Encrypted Chat</p>
     <div id="status" class="offline"><span class="dot"></span><span id="statusText">Connecting...</span></div>
   </div>
   <div>
@@ -105,7 +108,7 @@
 <div id="room"><div id="empty">No messages yet. Be the first to say hi 👋</div></div>
 
 <form id="bar">
-  <input id="msgInput" type="text" placeholder="Type a message..." maxlength="500" autocomplete="off" disabled>
+  <input id="msgInput" type="text" placeholder="Type a secure message..." maxlength="500" autocomplete="off" disabled>
   <button type="submit" id="sendBtn" disabled>Send</button>
 </form>
 
@@ -113,6 +116,7 @@
   const socket = io();  
 
   let SECRET_KEY = '';
+  let myName = '';
 
   const gate = document.getElementById('gate');
   const nameInput = document.getElementById('nameInput');
@@ -127,8 +131,6 @@
   const statusEl = document.getElementById('status');
   const statusText = document.getElementById('statusText');
 
-  let myName = '';
-
   function toggleSidebar() {
     document.getElementById('sidebar').classList.toggle('open');
     document.getElementById('overlay').classList.toggle('open');
@@ -136,7 +138,7 @@
 
   socket.on('connect', () => {
     statusEl.classList.remove('offline');
-    statusText.textContent = "Online — Messages synced";
+    statusText.textContent = "Online — Secure Synced";
     gateStatus.textContent = "Ready to connect...";
   });
 
@@ -150,6 +152,7 @@
     list.innerHTML = '';
     users.forEach(user => {
       const li = document.createElement('li');
+      // تنظيف اسم المستخدم لمنع أي حقن أكواد (XSS Sanitization)
       li.textContent = user;
       list.appendChild(li);
     });
@@ -169,9 +172,11 @@
     if(empty && empty.parentNode) empty.remove();
     const div = document.createElement('div');
     div.className = 'msg ' + type;
+    
     if(type !== 'system'){
       const n = document.createElement('span');
       n.className = 'name';
+      // تنظيف اسم المرسل أمنياً
       n.textContent = name;
       div.appendChild(n);
     }
@@ -180,9 +185,15 @@
     try {
         const bytes = CryptoJS.AES.decrypt(text, SECRET_KEY);
         const decrypted = bytes.toString(CryptoJS.enc.Utf8);
-        if (decrypted) displayText = decrypted;
+        
+        // التحقق من صحة فك التشفير (إذا كانت كلمة المرور خاطئة لن يظهر النص)
+        if (!decrypted) {
+            displayText = "🔒 [Encrypted message - Wrong password]";
+        } else {
+            displayText = decrypted;
+        }
     } catch(e) {
-        displayText = text;
+        displayText = "⚠️ [Decryption error]";
     }
 
     const t = document.createElement('span');
@@ -217,6 +228,8 @@
     e.preventDefault();
     const text = msgInput.value.trim();
     if(!text) return;
+    
+    // تشفير الرسالة قبل إرسالها عبر الـ Socket
     const encryptedText = CryptoJS.AES.encrypt(text, SECRET_KEY).toString();
     socket.emit('chat message', { name: myName, text: encryptedText });
     msgInput.value = '';
