@@ -1,14 +1,14 @@
 {
   "name": "RifChatPro",
   "short_name": "RifChat",
-  "description": "Real-time group chat",
+  "description": "Secure Local Real-time Group Chat",
   "start_url": "/",
   "display": "standalone",
   "background_color": "#0F3B52",
   "theme_color": "#0F3B52",
   "icons": [
     {
-      "src": "https://cdn-icons-png.flaticon.com/512/1041/1041880.png",
+      "src": "/icon.png",
       "sizes": "512x512",
       "type": "image/png"
     }
