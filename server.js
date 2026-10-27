@@ -8,6 +8,7 @@ const app = express();
 const server = http.createServer(app);
 const io = new Server(server);
 
+// حماية السيرفر من السبام والطلبات المتكررة
 const limiter = rateLimit({
     windowMs: 10 * 1000, 
     max: 20, 
@@ -15,10 +16,12 @@ const limiter = rateLimit({
 });
 app.use(limiter);
 
+// تهيئة قاعدة البيانات المحلية SQLite
 const db = new Database('./chat.db');
 db.exec(`CREATE TABLE IF NOT EXISTS messages (id INTEGER PRIMARY KEY AUTOINCREMENT, name TEXT, text TEXT, timestamp DATETIME DEFAULT CURRENT_TIMESTAMP)`);
 const insertStmt = db.prepare("INSERT INTO messages (name, text) VALUES (?, ?)");
 
+// تقديم الملفات الثابتة محلياً
 app.use(express.static('public'));
 
 // قائمة المتصلين
@@ -41,7 +44,10 @@ io.on('connection', (socket) => {
         try {
             if (!data.name || !data.text || data.text.trim() === '') return;
             const safeName = data.name.substring(0, 20).trim();
-            const safeText = data.text.substring(0, 500).trim();
+            
+            // تم التحديث هنا: رفع الحد الأقصى لاستيعاب النصوص المشفرة الطويلة
+            const safeText = data.text.substring(0, 2000).trim();
+            
             insertStmt.run(safeName, safeText);
             io.emit('chat message', { name: safeName, text: safeText });
         } catch (err) { console.error("DB Write Error:", err); }
@@ -55,5 +61,5 @@ io.on('connection', (socket) => {
 
 const PORT = process.env.PORT || 3000;
 server.listen(PORT, '0.0.0.0', () => {
-    console.log(`✅ Server running on: http://localhost:${PORT}`);
+    console.log(`✅ Secure Server running on: http://localhost:${PORT}`);
 });
