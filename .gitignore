@@ -1,1 +1,10 @@
 node_modules
+token.txt
+local.properties
+chat.db
+node_modules/
+android/
+icons.png/
+public/code.txt
+*.zip
+*.7z
